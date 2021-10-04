@@ -1,3 +1,5 @@
+import Data.Char
+
 -- Procedure Datatype (Prelim) --
 type Proc = ExpVal -> ExpVal
 
@@ -52,8 +54,8 @@ data AST = Const Int          |
            CallE AST AST
            deriving Show
 
-valueofprog :: AST -> ExpVal
-valueofprog p = valueof p initenv
+valueofprog :: String -> ExpVal
+valueofprog p = valueof (scanparse p) initenv
 
 valueof :: AST -> Env -> ExpVal
 valueof (Const  x         ) r = Numv x
@@ -77,14 +79,39 @@ valueof (CallE  rat ran   ) r = let Procv fun = valueof rat r
                                 in applyproc fun arg
 --                     --
 
-prog :: AST -- evaluates to Numv (-100)
-prog = (Let "x" (Const 200)
-            (Let "f" (ProcE "z"
-                       (Diff (Var "z")
-                             (Var "x")))
-                 (Let "x" (Const 100)
-                      (Let "g" (ProcE "z"
-                                 (Diff (Var "z")
-                                       (Var "x")))
-                           (Diff (CallE (Var "f") (Const 1))
-                                 (CallE (Var "g") (Const 1)))))))
+scanparse :: String -> AST
+scanparse prog = let (p, []) = parse (words prog)
+                 in p
+
+parse :: [String] -> (AST, [String])
+parse lex = case lex of
+              ("let":v:"=":ls) -> (Let v (assm) (body), rest)
+                                     where (assm, "in":rem) = parse ls
+                                           (body, rest) = parse rem
+              ("-":"(":ls) -> (Diff op1 op2, rest)
+                                 where (op1, ",":rem) = parse ls
+                                       (op2, ")":rest) = parse rem
+              ("*":"(":ls) -> (Mult op1 op2, rest)
+                                 where (op1, ",":rem) = parse ls
+                                       (op2, ")":rest) = parse rem
+              ("iszero":ls) -> (Iszero body, rest)
+                                  where (body, rest) = parse ls
+              ("if":ls) -> (Ifte c t e, rest)
+                              where (c, "then":rem) = parse ls
+                                    (t, "else":erem) = parse rem
+                                    (e, rest) = parse erem
+              ("\\":x:"->":ls) -> (ProcE x body, rest)
+                                     where (body, rest) = parse ls
+              (l:ls) -> if (all isDigit l)
+                          then (Const (read l :: Int), ls)
+                          else case ls of
+                                 "(":r -> (CallE (Var l) (arg), body)
+                                            where (arg, ")":body) = parse r
+                                 _ -> (Var l, ls)
+
+p :: String -- evaluates to Numv (-100)
+p = "let x = 200 \
+     \in let f = \\ z -> - ( z , x ) \
+         \in let x = 100 \
+             \in let g = \\ z -> - ( z , x ) \
+                 \in - ( f ( 1 ) , g ( 1 ) )"
