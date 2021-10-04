@@ -179,13 +179,9 @@ parse lex = case lex of
                           then (Const (read l :: Int), ls)
                           else (Var l, ls)
 
-prog :: AST -- evaluates to Numv (-5)
-prog = (Let "x" (Const 7)
-            (Let "y" (Const 2)
-                 (Let "y" (Let "x" (Bin (B (-)) (Var "x")
-                                                (Const 1))
-                               (Bin (B (-)) (Var "x")
-                                            (Var "y")))
-                      (Bin (B (-)) (Bin (B (-)) (Var "x")
-                                            (Const 8))
-                                   (Var "y")))))
+p :: String -- evaluates to Numv (-5)
+p = "let x = 7 \
+     \in let y = 2 \
+         \in let y = let x = - ( x , 1 ) \
+                     \in - ( x , y ) \
+             \in - ( - ( x , 8 ) , y )"
