@@ -1,8 +1,10 @@
+import Data.Char
+
 -- Procedure Datatype (Prelim) --
 type Proc = [ExpVal] -> Env -> ExpVal
 
 proc :: [String] -> AST -> Proc
-proc vs b = \es r -> valueof b 
+proc vs b = \es r -> valueof b
                         (foldr (\(v,e) env ->
                                   extendenv v e env)
                                r
@@ -52,12 +54,12 @@ data AST = Const Int          |
            Iszero AST         |
            Let String AST AST |
            Ifte AST AST AST   |
-           ProcE [String] AST   |
+           ProcE [String] AST |
            CallE AST [AST]
            deriving Show
 
-valueofprog :: AST -> ExpVal
-valueofprog p = valueof p initenv
+valueofprog :: String -> ExpVal
+valueofprog p = valueof (scanparse p) initenv
 
 valueof :: AST -> Env -> ExpVal
 valueof (Const  x         ) r = Numv x
@@ -81,74 +83,81 @@ valueof (CallE  rat ran   ) r = let Procv fun = valueof rat r
                                   in applyproc fun arg r
 --                     --
 
-prog :: AST -- evaluates to Numv (-100)
-prog = (Let "x" (Const 200)
-            (Let "f" (ProcE ["z"]
-                       (Diff (Var "z")
-                             (Var "x")))
-                 (Let "x" (Const 100)
-                      (Let "g" (ProcE ["z"]
-                                 (Diff (Var "z")
-                                       (Var "x")))
-                           (Diff (CallE (Var "f") [Const 1])
-                                 (CallE (Var "g") [Const 1]))))))
+scanparse :: String -> AST
+scanparse prog = let (p, []) = parse (words prog)
+                 in p
 
-p = (Let "makemult" (ProcE ["maker","x"]
-                           (Ifte (Iszero (Var "x"))
-                                 (Const 0)
-                                 (Diff (CallE (Var "maker")
-                                              [Var "maker",
-                                               Diff (Var "x")
-                                                    (Const 1)])
-                                       (Const (-4)))))
-          (Let "times4" (ProcE ["x"]
-                               (CallE (Var "makemult")
-                                      [Var "makemult",
-                                       Var "x"]))
-               (CallE (Var "times4")
-                      [Const 3])))
+parse :: [String] -> (AST, [String])
+parse lex = case lex of
+              ("let":v:"=":ls) -> (Let v (assm) (body), rest)
+                                     where (assm, "in":rem) = parse ls
+                                           (body, rest) = parse rem
+              ("-":"(":ls) -> (Diff op1 op2, rest)
+                                 where (op1, ",":rem) = parse ls
+                                       (op2, ")":rest) = parse rem
+              ("*":"(":ls) -> (Mult op1 op2, rest)
+                                 where (op1, ",":rem) = parse ls
+                                       (op2, ")":rest) = parse rem
+              ("iszero":ls) -> (Iszero body, rest)
+                                  where (body, rest) = parse ls
+              ("if":ls) -> (Ifte c t e, rest)
+                              where (c, "then":rem) = parse ls
+                                    (t, "else":erem) = parse rem
+                                    (e, rest) = parse erem
+              ("λ":ls) -> (ProcE args body, rest)
+                                     where (args, "->":rem) = parseargs ls
+                                           (body, rest) = parse rem
+                                           parseargs as = (a:r, s)
+                                                            where (a:x) = as
+                                                                  (r,s) = case x of
+                                                                        ",":rs -> parseargs rs
+                                                                        "->":_ -> ([], x)
+              (l:ls) -> if (all isDigit l)
+                          then (Const (read l :: Int), ls)
+                          else case ls of
+                                 "(":r -> (CallE (Var l) (args), rest)
+                                            where (args, ")":rest) = parseargs r
+                                                  parseargs as = (a:r, s)
+                                                                    where (a,x) = parse as
+                                                                          (r,s) = case x of
+                                                                                   ",":rs -> parseargs rs
+                                                                                   ")":_ -> ([],x)
+                                 _ -> (Var l, ls)
 
-f = (Let "makemult" (ProcE ["maker","x","y"]
-                           (Ifte (Iszero (Var "x"))
-                                 (Const 0)
-                                 (Diff (CallE (Var "maker")
-                                              [Var "maker",
-                                               Diff (Var "x")
-                                                    (Const 1),
-                                               Var "y"])
-                                       (Diff (Const 0)
-                                             (Var "y")))))
-          (Let "times" (ProcE ["x","y"]
-                              (CallE (Var "makemult")
-                                     [Var "makemult",
-                                      Var "x",
-                                      Var "y"]))
-               (Let "makefact" (ProcE ["maker","n"]
-                                     (Ifte (Iszero (Var "n"))
-                                           (Const 1)
-                                           (CallE (Var "times")
-                                                  [CallE (Var "maker")
-                                                         [Var "maker",
-                                                          Diff (Var "n")
-                                                               (Const 1)],
-                                                   Var "n"])))
-                    (Let "fact" (ProcE ["n"]
-                                      (CallE (Var "makefact")
-                                             [Var "makefact",
-                                              Var "n"]))
-                         (CallE (Var "fact")
-                                [Const 6])))))
+prog :: String
+prog = "let x = 200 \
+        \in let f = λ z -> - ( z , x ) \
+            \in let x = 100 \
+                \in let g = λ z -> - ( z , x ) \
+                    \in - ( f ( 1 ) , g ( 1 ) )"
 
-t = (Let "a" (Const 3)
-         (Let "p" (ProcE ["x"]
-                         (Diff (Var "x")
-                               (Var "a")))
-              (Let "a" (Const 5)
-                   (Diff (Var "a")
-                         (CallE (Var "p")
-                                [Const 2])))))
+p = "let makemult = λ maker , x -> if iszero x \
+                                    \then 0 \
+                                    \else - ( maker ( maker , - ( x , 1 ) ) , 4 ) \
+         \in let times4 = λ x -> makemult ( makemult , x ) \
+             \in times4 ( 3 )"
 
-pari = (Let "even" (ProcE ["n"]
+f = "let makemult = λ maker , x , y -> \
+                        \if iszero x \
+                        \then 0 \
+                        \else - ( maker ( maker , - ( x , 1 ) , y ) , - ( 0 , y ) ) \
+     \in let times = λ x , y -> \
+                         \makemult ( makemult , x , y ) \
+         \in let makefact = λ maker , n -> \
+                                \if iszero n \
+                                \then 1 \
+                                \else times ( maker ( maker , - ( n , 1 ) ) , n ) \
+             \in let fact = λ n -> \
+                                \makefact ( makefact , n ) \
+                 \in fact ( 6 )"
+
+
+t = "let a = 3 \
+     \in let p = λ x -> - ( x , a ) \
+         \in let a = 5 \
+             \in - ( a , p ( 2 ) )"
+
+{- pari = (Let "even" (ProcE ["n"]
                           (Ifte (Iszero (Var "n"))
                                 (Const 1)
                                 (CallE (Var "odd")
@@ -161,4 +170,14 @@ pari = (Let "even" (ProcE ["n"]
                                            [Diff (Var "n")
                                                  (Const 1)])))
                  (CallE (Var "odd")
-                        [Const 13])))
+                        [Const 13]))) -}
+
+pari = "let even = λ n -> \
+                       \if iszero n \
+                       \then 1 \
+                       \else odd ( - ( n , 1 ) ) \
+            \in let odd = λ n -> \
+                              \if iszero n \
+                              \then 0 \
+                              \else even ( - ( n , 1 ) ) \
+                \in odd ( 13 )"
