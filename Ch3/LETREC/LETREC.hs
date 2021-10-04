@@ -1,3 +1,5 @@
+import Data.Char
+
 -- Procedure Datatype (Prelim) --
 type Proc = ExpVal -> ExpVal
 
@@ -58,8 +60,8 @@ data AST = Const Int                    |
            CallE AST AST
            deriving Show
 
-valueofprog :: AST -> ExpVal
-valueofprog p = valueof p initenv
+valueofprog :: String -> ExpVal
+valueofprog p = valueof (scanparse p) initenv
 
 valueof :: AST -> Env -> ExpVal
 valueof (Const  x           ) r = Numv x
@@ -81,12 +83,37 @@ valueof (CallE  rat ran     ) r = let Procv fun = valueof rat r
                                   in applyproc fun arg
 --                     --
 
-prog :: AST -- evaluates to Numv 12
-prog = (Letrec "double" "x" (Ifte (Iszero (Var "x"))
-                                  (Const 0)
-                                  (Diff (CallE (Var "double")
-                                               (Diff (Var "x")
-                                                     (Const 1)))
-                                              (Const (-2))))
-               (CallE (Var "double")
-                      (Const 6)))
+scanparse :: String -> AST
+scanparse prog = let (p, []) = parse (words prog)
+                 in p
+
+parse :: [String] -> (AST, [String])
+parse lex = case lex of
+              ("let":v:"=":ls) -> (Let v (assm) (body), rest)
+                                     where (assm, "in":rem) = parse ls
+                                           (body, rest) = parse rem
+              ("-":"(":ls) -> (Diff op1 op2, rest)
+                                 where (op1, ",":rem) = parse ls
+                                       (op2, ")":rest) = parse rem
+              ("iszero":ls) -> (Iszero body, rest)
+                                  where (body, rest) = parse ls
+              ("if":ls) -> (Ifte c t e, rest)
+                              where (c, "then":rem) = parse ls
+                                    (t, "else":erem) = parse rem
+                                    (e, rest) = parse erem
+              ("λ":x:"->":ls) -> (ProcE x body, rest)
+                                     where (body, rest) = parse ls
+              ("letrec":x:"=":"λ":a:"->":ls) -> (Letrec x a body e, rest)
+                                     where (body, "in":rem) = parse ls
+                                           (e, rest) = parse rem
+              (l:ls) -> if (all isDigit l)
+                          then (Const (read l :: Int), ls)
+                          else case ls of
+                                 "(":r -> (CallE (Var l) (arg), body)
+                                            where (arg, ")":body) = parse r
+                                 _ -> (Var l, ls)
+
+prog = "letrec double = λ x -> if iszero x \
+                               \then 0 \
+                               \else - ( double ( - ( x , 1 ) ) , - ( 0 , 2 ) ) \
+        \in double ( 6 )"
