@@ -1,3 +1,4 @@
+import Data.Char
 -- Procedure Datatype (Prelim) --
 type Proc = [ExpVal] -> ExpVal
 
@@ -64,8 +65,8 @@ data AST = Const Int                    |
            CallE AST [AST]
            deriving Show
 
-valueofprog :: AST -> ExpVal
-valueofprog p = valueof p initenv
+valueofprog :: String -> ExpVal
+valueofprog p = valueof (scanparse p) initenv
 
 valueof :: AST -> Env -> ExpVal
 valueof (Const  x           ) r = Numv x
@@ -95,52 +96,88 @@ valueof (CallE  rat ran     ) r = let Procv fun = valueof rat r
                                   in applyproc fun arg
 --                     --
 
-prog :: AST -- evaluates to Numv 12
-prog = (Letrec [("double", ["x"], (Ifte (Iszero (Var "x"))
-                                        (Const 0)
-                                        (Diff (CallE (Var "double")
-                                                     [Diff (Var "x")
-                                                           (Const 1)])
-                                              (Const (-2)))))]
-               (CallE (Var "double")
-                      [Const 6]))
+scanparse :: String -> AST
+scanparse prog = let (p, []) = parse (words prog)
+                 in p
 
-prod = (Letrec [("mult", ["x","y"], (Ifte (Iszero (Var "y"))
-                                          (Const 0)
-                                          (Diff (CallE (Var "mult")
-                                                       [Var "x",
-                                                        Diff (Var "y")
-                                                             (Const 1)])
-                                                (Diff (Const 0)
-                                                      (Var "x")))))]
-               (CallE (Var "mult")
-                      [Const 13,
-                       Const 17]))
+parse :: [String] -> (AST, [String])
+parse lex = case lex of
+              ("let":v:"=":ls) -> (Let v (assm) (body), rest)
+                                     where (assm, "in":rem) = parse ls
+                                           (body, rest) = parse rem
+              ("-":"(":ls) -> (Diff op1 op2, rest)
+                                 where (op1, ",":rem) = parse ls
+                                       (op2, ")":rest) = parse rem
+              ("[]":ls) -> (EmpL, ls)
+              ("cons":ls) -> (Cons car cdr, rest)
+                                where (car, rem) = parse ls
+                                      (cdr, rest) = parse rem
+              ("car":ls) -> (Car body, rest)
+                                  where (body, rest) = parse ls
+              ("cdr":ls) -> (Cdr body, rest)
+                                  where (body, rest) = parse ls
+              ("iszero":ls) -> (Iszero body, rest)
+                                  where (body, rest) = parse ls
+              ("if":ls) -> (Ifte c t e, rest)
+                              where (c, "then":rem) = parse ls
+                                    (t, "else":erem) = parse rem
+                                    (e, rest) = parse erem
+              ("λ":ls) -> (ProcE args body, rest)
+                                     where (args, "->":rem) = parseargs ls
+                                           (body, rest) = parse rem
+                                           parseargs as = (a:r, s)
+                                                            where (a:x) = as
+                                                                  (r,s) = case x of
+                                                                        ",":rs -> parseargs rs
+                                                                        "->":_ -> ([], x)
+              ("letrec":ls) -> (Letrec funs body, rest)
+                               where (funs, "in":rem) = parsefuns ls
+                                     (body, rest) = parse rem
+                                     parsefuns fs = ((x,as,b):r, rs)
+                                                    where (x:"=":"λ":args) = fs
+                                                          (as, "->":s) = parseargs args
+                                                          (b, t) = parse s
+                                                          (r, rs) = case t of
+                                                                     ",":ts -> parsefuns ts
+                                                                     "in":_ -> ([],t)
+                                                          parseargs bs = (b:u, v)
+                                                                         where (b:y) = bs
+                                                                               (u,v) = case y of
+                                                                                        ",":ys -> parseargs ys
+                                                                                        "->":_ -> ([],y)
+              (l:ls) -> if (all isDigit l)
+                          then (Const (read l :: Int), ls)
+                          else case ls of
+                                 "(":r -> (CallE (Var l) (args), rest)
+                                            where (args, ")":rest) = parseargs r
+                                                  parseargs as = (a:r, s)
+                                                                    where (a,x) = parse as
+                                                                          (r,s) = case x of
+                                                                                   ",":rs -> parseargs rs
+                                                                                   ")":_ -> ([],x)
+                                 _ -> (Var l, ls)
 
-pari = (Letrec [("even", ["x"], (Ifte (Iszero (Var "x"))
-                                      (Const 1)
-                                      (CallE (Var "odd")
-                                             [Diff (Var "x")
-                                                   (Const 1)]))),
-                ("odd",  ["x"], (Ifte (Iszero (Var "x"))
-                                      (Const 0)
-                                      (CallE (Var "even")
-                                             [Diff (Var "x")
-                                                   (Const 1)])))]
-               (CallE (Var "odd")
-                      [Const 13]))
 
-rep = (Letrec [("rep", ["x"], (Cons (Var "x")
-                                   (CallE (Var "rep")
-                                          [Var "x"]))),
-                ("take", ["n","l"], (Ifte (Iszero (Var "n"))
-                                          (EmpL)
-                                          (Cons (Car (Var "l"))
-                                                (CallE (Var "take")
-                                                       [Diff (Var "n")
-                                                             (Const 1),
-                                                        (Cdr (Var "l"))]))))]
-              (CallE (Var "take")
-                     [Const 5,
-                      CallE (Var "rep")
-                            [Const 7]]))
+prog = "letrec double = λ x -> if iszero x \
+                               \then 0 \
+                               \else - ( double ( - ( x , 1 ) ) , - ( 0 , 2 ) ) \
+        \in double ( 6 )"
+
+prod = "letrec mult = λ x , y -> if iszero y \
+                                 \then 0 \
+                                 \else - ( mult ( x , - ( y , 1 ) ) , - ( 0 , x ) ) \
+        \in mult ( 13 , 17 )"
+
+pari = "letrec even = λ x -> if iszero x \
+                             \then 1 \
+                             \else odd ( - ( x , 1 ) ) , \
+              \odd = λ x -> if iszero x \
+                            \then 0 \
+                            \else even ( - ( x , 1 ) ) \
+        \in odd ( 13 )"
+
+rep = "letrec rep = λ x -> cons x rep ( x ) , \
+             \take = λ n , l -> if iszero n \
+                                \then [] \
+                                \else cons car l take ( - ( n , 1 ) , l ) \
+       \in take ( 5 , rep ( 7 ) )"
