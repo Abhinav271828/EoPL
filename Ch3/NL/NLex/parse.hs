@@ -3,17 +3,17 @@ module Parse where
 import Data.Char
 
 -- Expression Datatype --
-data AST = Const Int          |
-           Var String         |
-           Diff AST AST       |
-           Cons AST AST | EmpL |
-           Car AST | Cdr AST |
-           Iszero AST         |
-           Lets [(String, AST)] AST |
+data AST = Const Int                            |
+           Var String                           |
+           Diff AST AST                         |
+           Cons AST AST | EmpL                  |
+           Car AST | Cdr AST                    |
+           Iszero AST                           |
+           Lets [(String, AST)] AST             |
            Letrec [(String, [String], AST)] AST |
-           Ifte AST AST AST   |
-           Cond [(AST, AST)]  |
-           ProcE [String] AST   |
+           Ifte AST AST AST                     |
+           Cond [(AST, AST)]                    |
+           ProcE [String] AST                   |
            CallE AST [AST]
            deriving Show
 
