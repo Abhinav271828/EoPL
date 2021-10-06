@@ -2,16 +2,16 @@
 ## Files
 * `parse.hs`
     - the AST (expression) datatype definition
-    - `scanparse :: String -> AST`{.hs}
+    - `scanparse :: String -> AST`
 * `environment.hs`
     - the ExpVal (expressed values) datatype definition
     - the environment interface (procedural)
-        - `emptyenv`{.hs}
-        - `extendenv`{.hs}
-        - `applyenv`{.hs}
-        - `initenv`{.hs}
+        - `emptyenv`
+        - `extendenv`
+        - `applyenv`
+        - `initenv`
 * `interpret.hs`
-    - `valueofprog :: String -> ExpVal`{.hs}
+    - `valueofprog :: String -> ExpVal`
 * `example.hs`
 
 ## Syntax

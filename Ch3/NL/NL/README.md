@@ -2,24 +2,24 @@
 ## Files
 * `parse.hs`
     - the AST (expression) datatype definition
-    - `scanparse :: String -> AST`{.hs}
+    - `scanparse :: String -> AST`
 * `translation.hs`
     - the NLAST (nameless expression) datatype definition
     - the static environment interface (data)
-        - `emptysenv`{.hs}
-        - `extendsenv`{.hs}
-        - `applysenv`{.hs}
-        - `initsenv`{.hs}
-    - `translationofprog :: AST -> NLAST`{.hs}
+        - `emptysenv`
+        - `extendsenv`
+        - `applysenv`
+        - `initsenv`
+    - `translationofprog :: AST -> NLAST`
 * `interpret.hs`
     - the ExpVal (expressed values) datatype definition
     - the Proc (procedures) datatype definition
     - the environment interface (data)
-        - `emptyenv`{.hs}
-        - `extendenv`{.hs}
-        - `applyenv`{.hs}
-        - `initenv`{.hs}
-    - `valueofprog :: String -> ExpVal`{.hs}
+        - `emptyenv`
+        - `extendenv`
+        - `applyenv`
+        - `initenv`
+    - `valueofprog :: String -> ExpVal`
 * `example.hs`
 
 ## Syntax
