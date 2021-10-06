@@ -2,9 +2,13 @@ import Interpret
 import Parse
 import Translation
 
-p :: String -- evaluates to Numv (-100)
-p = "let x = 200 \
-     \in let f = λ z -> - ( z , x ) \
-         \in let x = 100 \
-             \in let g = λ z -> - ( z , x ) \
-                 \in - ( f ( 1 ) , g ( 1 ) )"
+p :: String -- evaluates to -5
+p = "let x = 7 \
+     \in let y = 2 \
+         \in let y = let x = - ( x , 1 ) \
+                     \in - ( x , y ) \
+             \in - ( - ( x , 8 ) , y )"
+
+q :: String -- evaluates to 16
+q = "let f = λ n -> - ( n , - ( 0 , n ) ) \
+     \in f ( f ( f ( 2 ) ) )"

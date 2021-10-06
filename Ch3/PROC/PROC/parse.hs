@@ -35,7 +35,7 @@ parse lex = case lex of
                               where (c, "then":rem) = parse ls
                                     (t, "else":erem) = parse rem
                                     (e, rest) = parse erem
-              ("\\":x:"->":ls) -> (ProcE x body, rest)
+              ("λ":x:"->":ls) -> (ProcE x body, rest)
                                      where (body, rest) = parse ls
               (l:ls) -> if (all isDigit l)
                           then (Const (read l :: Int), ls)

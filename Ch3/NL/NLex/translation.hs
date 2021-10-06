@@ -42,32 +42,39 @@ translationofprog :: AST -> NLAST
 translationofprog p = translationof p initsenv
 
 translationof :: AST -> Senv -> NLAST
-translationof (Const x) s = NLConst x
-translationof (Var x) s = NLVar (applysenv s x)
-translationof (Diff e1 e2) s = NLDiff (translationof e1 s) (translationof e2 s)
-translationof (Cons e1 e2) s = NLCons (translationof e1 s) (translationof e2 s)
-translationof (EmpL) s = NLEmpL
-translationof (Car e) s = NLCar (translationof e s)
-translationof (Cdr e) s = NLCdr (translationof e s)
-translationof (Iszero e) s = NLIszero (translationof e s)
-translationof (Ifte c t e) s = NLIfte (translationof c s) (translationof t s) (translationof e s)
-translationof (Cond es) s = NLCond (map (\(i,e) -> (translationof i s, translationof e s)) es)
-translationof (Lets es b) s = let functions = filter (\(_,e) -> isProc e) es
-                                  variables = filter (\(_,e) -> not $ isProc e) es
-                                  body = replace functions b
-                              in NLLets (map (\(_,e) ->
-                                                  translationof e s)
-                                             variables)
-                                        (translationof body
-                                            (extendsenv (map fst variables) s))
-translationof (Letrec fs b) s = NLLetrec
+translationof (Const  x      ) s = NLConst x
+translationof (Var    x      ) s = NLVar (applysenv s x)
+translationof (Diff   e1 e2  ) s = NLDiff (translationof e1 s)
+                                          (translationof e2 s)
+translationof (Cons   e1 e2  ) s = NLCons (translationof e1 s)
+                                          (translationof e2 s)
+translationof (EmpL          ) s = NLEmpL
+translationof (Car    e      ) s = NLCar (translationof e s)
+translationof (Cdr    e      ) s = NLCdr (translationof e s)
+translationof (Iszero e      ) s = NLIszero (translationof e s)
+translationof (Ifte   c  t e ) s = NLIfte (translationof c s)
+                                          (translationof t s)
+                                          (translationof e s)
+translationof (Cond   es     ) s = NLCond (map (\(i,e) -> (translationof i s,
+                                                             translationof e s))
+                                               es)
+translationof (Lets   es b   ) s = let functions = filter (\(_,e) -> isProc e) es
+                                       variables = filter (\(_,e) -> not $ isProc e) es
+                                       body = replace functions b
+                                   in NLLets (map (\(_,e) ->
+                                                      translationof e s)
+                                                  variables)
+                                             (translationof body
+                                                  (extendsenv (map fst variables) s))
+translationof (Letrec fs b   ) s = NLLetrec
                                       (map (\(v,as,e) ->
                                                 translationof e (extendsenv as names))
                                            fs)
                                       (translationof b names)
                                                 where names = extendsenv (map (\(v,_,_) -> v) fs) s
-translationof (ProcE vs b) s = NLProc (translationof b (extendsenv vs s))
-translationof (CallE f as) s = NLCall (translationof f s) (map (\a -> translationof a s) as)
+translationof (ProcE  vs b   ) s = NLProc (translationof b (extendsenv vs s))
+translationof (CallE  f  as  ) s = NLCall (translationof f s)
+                                          (map (\a -> translationof a s) as)
 
 isProc :: AST -> Bool
 isProc p = case p of

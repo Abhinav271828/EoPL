@@ -1,6 +1,10 @@
+import Parse
 import Interpret
 
-prog = "letrec double = λ x -> if iszero x \
-                               \then 0 \
-                               \else - ( double ( - ( x , 1 ) ) , - ( 0 , 2 ) ) \
-        \in double ( 6 )"
+p :: String -- evaluates to 1
+p = "letrec even = λ x -> if iszero x \
+                         \then 1 \
+                         \else if iszero - ( x , 1 ) \
+                              \then 0 \
+                              \else even ( - ( x , 2 ) ) \
+    \in even ( 8 )"

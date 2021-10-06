@@ -77,7 +77,7 @@ valueof (NLIfte   c    t   e) r = let Boolv v = valueof c r
 valueof (NLCond   cs        ) r = case cs of
                                      ((c,t):es) -> valueof (NLIfte c t (NLCond es)) r
                                      [] -> Null
-valueof (NLProc   b          ) r = Procv (proc b r)
+valueof (NLProc   b         ) r = Procv (proc b r)
 valueof (NLCall   rat ran   ) r = let args = map (\a -> valueof a r) ran
                                   in case rat of
                                        NLProc fun -> valueof fun (extendenv args r)

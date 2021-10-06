@@ -1,14 +1,47 @@
-import Interpret
-import Parse
+# The PROCex Language
+## Files
+* `parse.hs`
+    - the AST (expression) datatype definition
+    - `scanparse :: String -> AST`{.hs}
+* `interpret.hs`
+    - the ExpVal (expressed values) datatype definition
+    - the Proc (procedures) datatype definition (evaluated in calling environment)
+    - the environment interface (procedural)
+        - `emptyenv`{.hs}
+        - `extendenv`{.hs}
+        - `applyenv`{.hs}
+        - `initenv`{.hs}
+    - `valueofprog :: String -> ExpVal`{.hs}
+* `example.hs`
 
-p :: String -- evaluates to 0
+## Syntax
+```
+Expression := let ID = Expression in Expression
+           := - ( Expression , Expression )
+           := * ( Expression , Expression )
+           := if Bool then Expression else Expression
+           := λ ID , ... -> Expression
+           := ID ( ID , ... )
+           := ID
+           := Num
+
+ID         := String
+
+Bool       := iszero Expression
+```
+
+## Examples
+```hs
+-- evaluates to 0
 p = "let x = 200 \
      \in let f = λ z -> - ( z , x ) \
          \in let x = 100 \
              \in let g = λ z -> - ( z , x ) \
                  \in - ( f ( 1 ) , g ( 1 ) )"
+```
 
-q :: String -- evaluates to 0
+```hs
+-- evaluates to 0
 q = "let add = λ x , y -> - ( x , - ( 0 , y ) ) \
      \in let mult = λ x , y -> if iszero y \
                               \then 0 \
@@ -16,9 +49,11 @@ q = "let add = λ x , y -> - ( x , - ( 0 , y ) ) \
          \in if iszero - ( mult ( 3 , 4 ) , * ( 3 , 4 ) ) \
             \then 0 \
             \else 1"
+```
 
-r :: String -- evaluates to 720
-r = "let makemult = λ maker , x , y -> \
+```hs
+-- evaluates to 720
+f = "let makemult = λ maker , x , y -> \
                         \if iszero x \
                         \then 0 \
                         \else - ( maker ( maker , - ( x , 1 ) , y ) , - ( 0 , y ) ) \
@@ -31,3 +66,4 @@ r = "let makemult = λ maker , x , y -> \
              \in let fact = λ n -> \
                                 \makefact ( makefact , n ) \
                  \in fact ( 6 )"
+```

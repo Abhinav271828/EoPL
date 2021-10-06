@@ -2,9 +2,10 @@ import Interpret
 import Parse
 import Translation
 
-p :: String -- evaluates to Numv (-100)
-p = "let x = 200 \
-     \in let f = λ z -> - ( z , x ) \
-         \in let x = 100 \
-             \in let g = λ z -> - ( z , x ) \
-                 \in - ( f ( 1 ) , g ( 1 ) )"
+p :: String -- evaluates to 1
+p = "letrec even = λ x -> cond ( iszero x -> 1 , \
+                                \iszero 0 -> odd ( - ( x , 1 ) ) ) , \
+           \odd = λ x -> cond ( iszero x -> 0 , \
+                               \iszero 0 -> even ( - ( x , 1 ) ) ) \
+     \in - ( even ( 8 ) , odd ( 6 ) )"
+
