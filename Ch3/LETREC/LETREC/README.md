@@ -1,4 +1,4 @@
-# The PROC Language
+# The LETREC Language
 ## Files
 * `parse.hs`
     - the AST (expression) datatype definition
