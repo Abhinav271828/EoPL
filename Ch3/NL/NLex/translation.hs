@@ -55,26 +55,22 @@ translationof (Iszero e      ) s = NLIszero (translationof e s)
 translationof (Ifte   c  t e ) s = NLIfte (translationof c s)
                                           (translationof t s)
                                           (translationof e s)
-translationof (Cond   es     ) s = NLCond (map (\(i,e) -> (translationof i s,
-                                                             translationof e s))
-                                               es)
+translationof (Cond   es     ) s = NLCond [(translationof i s,
+                                            translationof e s) | (i,e) <- es]
 translationof (Lets   es b   ) s = let functions = filter (\(_,e) -> isProc e) es
                                        variables = filter (\(_,e) -> not $ isProc e) es
                                        body = replace functions b
-                                   in NLLets (map (\(_,e) ->
-                                                      translationof e s)
-                                                  variables)
+                                   in NLLets [translationof e s | (_,e) <- variables]
                                              (translationof body
                                                   (extendsenv (map fst variables) s))
-translationof (Letrec fs b   ) s = NLLetrec
-                                      (map (\(v,as,e) ->
-                                                translationof e (extendsenv as names))
-                                           fs)
-                                      (translationof b names)
+translationof (Letrec fs b   ) s = NLLetrec [translationof e
+                                               (extendsenv as names)
+                                                       | (_,as,e) <- fs]
+                                            (translationof b names)
                                                 where names = extendsenv (map (\(v,_,_) -> v) fs) s
 translationof (ProcE  vs b   ) s = NLProc (translationof b (extendsenv vs s))
 translationof (CallE  f  as  ) s = NLCall (translationof f s)
-                                          (map (\a -> translationof a s) as)
+                                          [translationof a s | a <- as]
 
 isProc :: AST -> Bool
 isProc p = case p of
@@ -92,10 +88,10 @@ replace l@((n,val):fs) p = let prog = replace fs p
                                 Car e -> Car (replace l e)
                                 Cdr e -> Cdr (replace l e)
                                 Iszero e -> Iszero (replace l e)
-                                Lets xs b -> Lets (map (\(x,y) -> (x, replace l y)) xs) (replace l b)
-                                Letrec xs b -> Letrec (map (\(x,y,z) -> (x, y, replace l z)) xs) (replace l b)
+                                Lets xs b -> Lets [(x, replace l y) | (x,y) <- xs] (replace l b)
+                                Letrec xs b -> Letrec [(x, y, replace l z) | (x,y,z) <- xs] (replace l b)
                                 Ifte c t e -> Ifte (replace l c) (replace l t) (replace l e)
-                                Cond cs -> Cond (map (\(x,y) -> (replace l x, replace l y)) cs)
+                                Cond cs -> Cond [(replace l x, replace l y) | (x,y) <- cs]
                                 ProcE as b -> ProcE as (replace l b)
                                 CallE f as -> CallE (replace l f) (map (replace l) as)
                                 _ -> prog
