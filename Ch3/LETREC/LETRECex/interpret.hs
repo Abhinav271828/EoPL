@@ -76,7 +76,7 @@ valueof (Iszero e           ) r = let Numv v = valueof e r
                                   in Boolv (v == 0)
 valueof (Let    var e   b   ) r = let v = valueof e r
                                   in valueof b (extendenv var v r)
-valueof (Letrec procs b.    ) r = valueof b (extendenvrec procs r)
+valueof (Letrec procs b     ) r = valueof b (extendenvrec procs r)
 valueof (Ifte   c   t   e   ) r = let Boolv v = valueof c r
                                   in if v then (valueof t r)
                                      else (valueof e r)
