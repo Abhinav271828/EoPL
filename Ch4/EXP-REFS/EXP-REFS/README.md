@@ -1,4 +1,4 @@
-# The LETRECex Language
+# The EXP-REFS Language
 ## Files
 * `parse.hs`
     - the AST (expression) datatype definition
