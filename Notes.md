@@ -777,3 +777,53 @@ $$\begin{split}
 \text{apply-nameless-env} : \text{Nameless-Env} \times \text{Lexaddr} \to \text{DenVal} \end{split}$$
 
 The procedures are defined similar to those for static environments; lookup is carried out by simple indexing.
+
+
+# 4 State
+## 4.1 Computational Effects
+Effects produced by computations are different from values in that they are *global*. There are many types of effects, but we will be concerned with variable assignment.  
+
+Memory is modelled as a map from locations to *storable values*, called the *store* (the storable values are typically the same as the expressed values).  
+
+A data structure representing a location is called a *reference* (the location/reference distinction is analogous to the URL/file distinction). References are sometimes called *lvalues*, and expressed values *rvalues*.  
+
+We have two designs for a language with a store, which we call *explicit* and *implicit* references.
+
+## 4.2 EXP-REFS: A Languages with Explicit References
+Here,
+$$\begin{split}
+\text{ExpVal} &= \text{Int} + \text{Bool} + \text{Proc} + \text{Ref(ExpVal)} \\
+\text{DenVal} &= \text{ExpVal} \end{split}$$
+
+where Ref(ExpVal) is the set of references to locations that contain expressed values.  
+
+We add three new operators: `newref` (which allocates and returns a reference to a new location), `deref` (which dereferences a reference), and `setref` (which changes the contents of the location represented by a reference).   
+
+Communication via a shared variable is convenient as it allows for hiding (intermediate procedures needn't know about a shared value if the call is not direct).  
+Assignment can also create a hidden state through the use of private variables.  
+
+### 4.2.1 Store-Passing Specifications
+In a store-passing specification, the store is passed as an explicit argument to `valueof` and is returned from it as a result. Thus, for example,
+```hs
+(valueof (Const n) rho sigma) = (n, sigma)
+```
+
+In the case of difference-expressions, the operands are evaluated in order, passing the store from each evaluation to the other, followed by the subtraction which returns the last state. In this way we can write the specifications of all the expression types.  
+
+We also have a new keyword `begin`:
+```
+Expression := begin Expression {; Expression}* end
+```
+
+### 4.2.2 Specifying Operations on Explicit References
+We have three new operations:
+```
+Expression := newref ( Expression )
+           := deref ( Expression )
+           := setref (Expression , Expression)
+```
+
+Note that `setref` is executed *for effect*, rather than value; it returns an arbitrary value.
+
+### 3.2.4 Implementation
+They use a global Scheme variable (`:vomiting_face:`), but we'll pass it around like normal people. The store is implemented as a list of values, and references as indices into the list.
