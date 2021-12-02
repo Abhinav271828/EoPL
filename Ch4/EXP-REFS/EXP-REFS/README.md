@@ -58,7 +58,7 @@ p = "let g = let c = newref ( 10 ) \
                       \end \
     \in let a = g ( 11 ) \
        \in let b = g ( 11 ) \
-          \in b"
+          \in - ( a , b )"
 
 -- evaluates to 11
 q = "let x = newref ( newref ( 0 ) ) \
