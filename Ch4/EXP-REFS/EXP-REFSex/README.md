@@ -28,9 +28,9 @@ Expression := let ID = Expression in Expression
            := List
            := car List
            := cdr List
-           := λ ID -> Expression
-           := letrec ID = λ ID -> Expression , ... in Expression
-           := ID ( ID )
+           := λ ID , ... -> Expression
+           := letrec ID = λ ID , ... -> Expression , ... in Expression
+           := ID ( ID , ... )
            := ID
            := newref ( Expression )
            := deref ( Ref )
