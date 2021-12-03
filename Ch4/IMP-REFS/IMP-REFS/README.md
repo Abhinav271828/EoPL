@@ -1,0 +1,63 @@
+# The EXP-REFS Language
+## Files
+* `parse.hs`
+    - the AST (expression) datatype definition
+    - `scanparse :: String -> AST`
+* `interpret.hs`
+    - the ExpVal (expressed values) datatype definition
+    - the Proc (procedures) datatype definition
+    - the environment interface (procedural)
+        - `emptyenv`
+        - `extendenv`
+        - `extendenvrec` (subroutine `extendenvrec1`)
+        - `applyenv`
+        - `initenv`
+    - the store interface (data)
+        - `emptystore`
+        - `newref`
+        - `deref`
+        - `setref`
+    - `valueofprog :: String -> ExpVal`
+* `example.hs`
+
+## Syntax
+```
+Expression := let ID = Expression in Expression
+           := - ( Expression , Expression )
+           := if Bool then Expression else Expression
+           := List
+           := car List
+           := cdr List
+           := λ ID -> Expression
+           := letrec ID = λ ID -> Expression , ... in Expression
+           := ID ( ID )
+           := ID
+           := newref ( Expression )
+           := deref ( Ref )
+           := setref ( Ref , Expression )
+           := set ID = Expression
+           := begin Expression ; ... end
+           := Num
+
+List       := cons Expression Expression
+           := []
+
+ID         := String
+
+Bool       := iszero Expression
+
+Ref        := Expression
+```
+
+## Examples
+```hs
+-- evaluates to 1
+p = "let g = let c = 10 \
+            \in λ * -> begin \
+                        \set c = - ( c , 1 ) ; \
+                        \c \
+                      \end \
+    \in let a = g ( 11 ) \
+       \in let b = g ( 11 ) \
+          \in - ( a , b )"
+```
