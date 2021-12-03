@@ -826,4 +826,31 @@ Expression := newref ( Expression )
 Note that `setref` is executed *for effect*, rather than value; it returns an arbitrary value.
 
 ### 3.2.4 Implementation
-They use a global Scheme variable (`:vomiting_face:`), but we'll pass it around like normal people. The store is implemented as a list of values, and references as indices into the list.
+They use a global Scheme variable (`:vomiting_face:`), but we'll pass it around like normal people (store-passing). The store is implemented as a list of values, and references as indices into the list.  
+
+## 4.3 IMP-REFS: A Language with Implicity References
+EXP-REFS gives a clear account of allocation, dereferencing and mutation, as these are all explicit. Most PLs, however, abstract these away from the programmer's code.  
+
+Here, every variable denotes a reference; denoted values are references to locations that contain expressed values. Thus references are no longer expressed values, and exist only as bindings.  
+
+$$\begin{split}
+\text{ExpVal} &= \text{Int} + \text{Bool} + \text{Proc} \\
+\text{DenVal} &= \text{Ref(ExpVal)} \end{split}$$
+
+Locations are created with each binding operation, *i.e.*, procedure call, `let` or `letrec`.  
+
+When a variable appears in an expression, we look it up in the environment to find the location it refers to, and then look up the store to find the value. We use `set` to change the contents of a location, which is expressed as an `Assign` statement in the AST.  
+
+### 4.3.1 Specification
+Whenever a variable appears as an expression, it has to be dereferenced by looking it up in the environment and the store. Assignment also occurs similarly to `setref`.  
+
+For `let` and `apply-procedure`, we need to create new locations and modify the store.
+
+### 4.3.2 The Implementation
+For variable expressions and assignments, we continue to use `deref` and `setref`.  
+
+For creating references, four cases must be considered: the initial environment, `let`, a procedure a call and a `letrec`.  
+For the initial environment, the allocation is explicit.  
+For `let`, we allocate a new location containing the value (using `newref`) and bind the variable to reference it.  
+For procedure calls, too, we call `newref`.  
+For `letrec`, we modify `extendenvrec` to return a reference to the location containing the closure.
