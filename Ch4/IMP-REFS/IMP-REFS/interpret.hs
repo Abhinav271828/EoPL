@@ -7,7 +7,8 @@ import Data.Char
 type Proc = ExpVal -> Store -> (ExpVal, Store)
 
 proc :: String -> AST -> Env -> Proc
-proc v b r = \e s -> valueof b (extendenv v e r) s
+proc v b r = \e s -> let (i, s1) = (newref e s)
+                     in valueof b (extendenv v (Refv i) r) s1
 
 applyproc :: Proc -> ExpVal -> Store -> (ExpVal, Store)
 applyproc = id
@@ -19,7 +20,7 @@ data ExpVal = Numv Int | Boolv Bool | Procv Proc | Listv [ExpVal] | Refv Int | N
 instance Show ExpVal where
   show (Numv  n) = "Numv " ++ show n
   show (Boolv b) = "Boolv " ++ show b
-  show (Procv p) = "Procv " ++ show (p (Numv 1) emptystore)
+  show (Procv p) = "Procv " ++ show (p (Refv 0) [Numv 2])
   show (Listv l) = show l
   show (Refv  r) = "Refv " ++ show r
   show (Null)    = "Null"
@@ -50,13 +51,13 @@ setref i val s = (take i s) ++ (val : (drop (i+1) s))
 
 
 -- Environment Datatype --
-type Env = String -> ExpVal
+type Env = [(String, ExpVal)]
 
 emptyenv :: Env
-emptyenv = \_ -> Null
+emptyenv = []
 
 extendenv :: String -> ExpVal -> Env -> Env
-extendenv var val e = \s -> if (s == var) then val else (e s)
+extendenv var val e = (var, val) : e
                                  
 extendenvrec :: [(String, String, AST)] -> (Env, Store) -> (Env, Store)
 extendenvrec fs (e,s) = (r, s2)
@@ -76,7 +77,8 @@ setrefs ((fname, v, b):fs) (r,s) = setrefs fs (r, setref addr (Procv $ proc v b 
                                       where Refv addr = applyenv r fname
 
 applyenv :: Env -> String -> ExpVal
-applyenv = ($)
+applyenv e s = let Just val = lookup s e
+               in val
 
 initenv :: Env
 initenv = emptyenv
@@ -112,7 +114,8 @@ valueof (Let    var e   b   ) r s = let (val, s1) = valueof e r s
 valueof (Letrec fns b       ) r s = let (r1, s1) = extendenvrec fns (r,s)
                                     in valueof b r1 s1
 valueof (Ifte   c   t   e   ) r s = let (Boolv v, s1) = valueof c r s
-                                    in if v then (valueof t r s1)
+                                    in if v
+                                       then (valueof t r s1)
                                        else (valueof e r s1)
 valueof (ProcE  v   b       ) r s = (Procv (proc v b r), s)
 valueof (CallE  rat ran     ) r s = let (Procv fun, s1) = valueof rat r s
