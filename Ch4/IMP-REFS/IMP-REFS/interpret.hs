@@ -21,6 +21,8 @@ instance Show ExpVal where
   show (Boolv b) = "Boolv " ++ show b
   show (Procv p) = "Procv " ++ show (p (Numv 1) emptystore)
   show (Listv l) = show l
+  show (Refv  r) = "Refv " ++ show r
+  show (Null)    = "Null"
 
 getnum :: ExpVal -> Int
 getnum (Numv x) = x
@@ -55,14 +57,23 @@ emptyenv = \_ -> Null
 
 extendenv :: String -> ExpVal -> Env -> Env
 extendenv var val e = \s -> if (s == var) then val else (e s)
-
-extendenvrec1 :: String -> String -> AST -> (Env, Store) -> (Env, Store)
-extendenvrec1 fun var body (e,s) = (r, s1)
-                           where (ref,s1) = newref (Procv $ proc var body e) s
-                                 r = extendenv fun (Refv ref) e
+                                 
 extendenvrec :: [(String, String, AST)] -> (Env, Store) -> (Env, Store)
-extendenvrec [] (e,s) = (e,s)
-extendenvrec ((fun,var,body):fs) (e,s) = extendenvrec fs $ extendenvrec1 fun var body (e,s)
+extendenvrec fs (e,s) = (r, s2)
+                        where (refs, s1) = newrefs fs s
+                              r = foldr ($) e [extendenv fname (Refv ref) | ((fname,_,_), ref) <- zip fs refs ]
+                              s2 = setrefs fs (r,s1)
+
+newrefs :: [a] -> Store -> ([Int], Store)
+newrefs [] s = ([], s)
+newrefs (f:fs) s = let (i, s1) = newref Null s
+                       (is, s2) = newrefs fs s1
+                   in (i:is, s2)
+
+setrefs :: [(String, String, AST)] -> (Env, Store) -> Store
+setrefs [] (r,s)                 = s
+setrefs ((fname, v, b):fs) (r,s) = setrefs fs (r, setref addr (Procv $ proc v b r) s)
+                                      where Refv addr = applyenv r fname
 
 applyenv :: Env -> String -> ExpVal
 applyenv = ($)
@@ -98,7 +109,7 @@ valueof (Iszero e           ) r s = let (Numv v, s1) = valueof e r s
 valueof (Let    var e   b   ) r s = let (val, s1) = valueof e r s
                                         (i, s2) = newref val s1
                                     in valueof b (extendenv var (Refv i) r) s2
-valueof (Letrec fns b        ) r s = let (r1, s1) = extendenvrec fns (r,s)
+valueof (Letrec fns b       ) r s = let (r1, s1) = extendenvrec fns (r,s)
                                     in valueof b r1 s1
 valueof (Ifte   c   t   e   ) r s = let (Boolv v, s1) = valueof c r s
                                     in if v then (valueof t r s1)
