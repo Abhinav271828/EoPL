@@ -32,9 +32,6 @@ Expression := let ID = Expression in Expression
            := letrec ID = λ ID -> Expression , ... in Expression
            := ID ( ID )
            := ID
-           := newref ( Expression )
-           := deref ( Ref )
-           := setref ( Ref , Expression )
            := set ID = Expression
            := begin Expression ; ... end
            := Num
