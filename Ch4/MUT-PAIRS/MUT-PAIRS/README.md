@@ -24,20 +24,19 @@
 ```
 Expression := let ID = Expression in Expression
            := - ( Expression , Expression )
+           := newpair ( Expression , Expression )
+           := left ( Expression )
+           := right ( Expression )
            := if Bool then Expression else Expression
-           := List
-           := car List
-           := cdr List
            := λ ID -> Expression
            := letrec ID = λ ID -> Expression , ... in Expression
            := ID ( ID )
            := ID
            := set ID = Expression
+           := setleft ID = Expression
+           := setright ID = Expression
            := begin Expression ; ... end
            := Num
-
-List       := cons Expression Expression
-           := []
 
 ID         := String
 
@@ -48,24 +47,7 @@ Ref        := Expression
 
 ## Examples
 ```hs
-p :: String -- evaluates to 0
-p = "letrec 0mod2 = λ x -> if iszero x \
-                          \then 1 \
-                          \else 1mod2 ( - ( x , 1 ) ) , \
-           \1mod2 = λ x -> if iszero x \
-                          \then 0 \
-                          \else 0mod2 ( - ( x , 1 ) ) \
-    \in 0mod2 ( 5 )"
-
-q :: String -- evaluates to 1
-q = "letrec 0mod3 = λ x -> if iszero x \
-                          \then 1 \
-                          \else 2mod2 ( - ( x , 1 ) ) , \
-           \1mod3 = λ x -> if iszero x \
-                          \then 0 \
-                          \else 0mod2 ( - ( x , 1 ) ) \
-           \2mod3 = λ x -> if iszero x \
-                          \then 0 \
-                          \else 1mod2 ( - ( x , 1 ) ) \
-    \in 0mod3 ( 9 )"
+-- evaluates to 1
+p = "let x = newpair ( 2 , 3 ) \
+    \in - ( right ( x ) , left ( x ) )"
 ```
