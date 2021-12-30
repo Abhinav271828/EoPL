@@ -828,7 +828,7 @@ Note that `setref` is executed *for effect*, rather than value; it returns an ar
 ### 3.2.4 Implementation
 They use a global Scheme variable (`:vomiting_face:`), but we'll pass it around like normal people (store-passing). The store is implemented as a list of values, and references as indices into the list.  
 
-## 4.3 IMP-REFS: A Language with Implicity References
+## 4.3 IMP-REFS: A Language with Implicit References
 EXP-REFS gives a clear account of allocation, dereferencing and mutation, as these are all explicit. Most PLs, however, abstract these away from the programmer's code.  
 
 Here, every variable denotes a reference; denoted values are references to locations that contain expressed values. Thus references are no longer expressed values, and exist only as bindings.  
@@ -854,3 +854,18 @@ For the initial environment, the allocation is explicit.
 For `let`, we allocate a new location containing the value (using `newref`) and bind the variable to reference it.  
 For procedure calls, too, we call `newref`.  
 For `letrec`, we modify `extendenvrec` to return a reference to the location containing the closure.
+
+## 4.4 MUT-PAIRS: A Language with Mutable Pairs
+We will add pairs to the set of expressed values, with the following operations.
+$$\begin{split}
+\text{newpair} &: \text{ExpVal} \times \text{ExpVal} \to \text{MutPair} \\
+\text{left} &: \text{MutPair} \to \text{ExpVal} \\
+\text{right} &: \text{MutPair} \to \text{ExpVal} \\
+\text{setleft} &: \text{MutPair} \times \text{ExpVal} \to \text{Unspecified} \\
+\text{setright} &: \text{MutPair} \times \text{ExpVal} \to \text{Unspecified} \end{split}$$
+
+### 4.4.1 Implementation
+The datatype for expressed values now includes a constructor `Pairv`, which holds two integers representing the positions of the elements of the pair in memory.
+
+### 4.4.2 Another Representation of Mutable Pairs
+Since we know that the elements of the pair are going to be assigned to consecutive locations, we can specify the location of the pair by a reference to its first element alone.
